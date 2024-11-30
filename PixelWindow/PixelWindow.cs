@@ -171,7 +171,7 @@ public class PixelWindow : GameWindow
         GL.Uniform1i(textureUniformLocation, 0); // Use texture unit 0
     }
 
-    private unsafe void UpdateTexture()
+    public unsafe void UpdateTexture()
     {
         GL.BindTexture(TextureTarget.Texture2d, _texture);
 
