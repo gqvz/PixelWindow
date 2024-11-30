@@ -9,6 +9,8 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <PackageId>PixelWindow</PackageId>
         <Version>1.0.0-alpha</Version>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
         <Authors>gqvz</Authors>
         <Description>
             A simple windowing library, to show pixels on a window.
@@ -17,6 +19,11 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath="\"/>
+        <None Include="..\LICENSE.txt" Pack="true" PackagePath=""/>
+    </ItemGroup>
+    
     <ItemGroup>
       <PackageReference Include="OpenTK" Version="5.0.0-pre.13" />
     </ItemGroup>
