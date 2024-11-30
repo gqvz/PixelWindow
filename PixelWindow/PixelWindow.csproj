@@ -8,7 +8,7 @@
         <InvariantGlobalization>true</InvariantGlobalization>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <PackageId>PixelWindow</PackageId>
-        <Version>1.0.0-alpha</Version>
+        <Version>1.0.1-alpha</Version>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
         <Authors>gqvz</Authors>

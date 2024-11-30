@@ -9,8 +9,16 @@ namespace PixelWindow;
 
 public class PixelWindow : GameWindow
 {
-    public unsafe byte* Data;
-    
+    public unsafe byte* Data
+    {
+        get => _data;
+        set
+        {
+            _data = value;
+            UpdateTexture();
+        }
+    }
+
     private int _vertexBufferObject;
     private int _vertexArrayObject;
     private int _texture;
@@ -30,6 +38,8 @@ public class PixelWindow : GameWindow
         0, 1, 3, // First triangle
         1, 2, 3  // Second triangle
     };
+
+    private unsafe byte* _data;
 
     // language=GLSL
     private const string VertexShaderSource = """
@@ -79,7 +89,7 @@ public class PixelWindow : GameWindow
         }
     }
 
-    protected override unsafe void OnLoad()
+    protected override void OnLoad()
     {
         base.OnLoad();
 
@@ -151,16 +161,7 @@ public class PixelWindow : GameWindow
 
         // Create and bind texture
         _texture = GL.GenTexture();
-        GL.BindTexture(TextureTarget.Texture2d, _texture);
-
-        // Set texture parameters
-        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-
-
-        
-        GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba, ClientSize.X, ClientSize.Y, 0, PixelFormat.Rgba,
-            PixelType.UnsignedByte, Data);
+        UpdateTexture();
 
         GL.GenerateMipmap(TextureTarget.Texture2d);
 
@@ -170,7 +171,19 @@ public class PixelWindow : GameWindow
         GL.Uniform1i(textureUniformLocation, 0); // Use texture unit 0
     }
 
-    protected override void OnRenderFrame(FrameEventArgs args)
+    private unsafe void UpdateTexture()
+    {
+        GL.BindTexture(TextureTarget.Texture2d, _texture);
+
+        // Set texture parameters
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+        
+        GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba, ClientSize.X, ClientSize.Y, 0, PixelFormat.Rgba,
+            PixelType.UnsignedByte, _data);
+    }
+
+    protected override unsafe void OnRenderFrame(FrameEventArgs args)
     {
         base.OnRenderFrame(args);
 
