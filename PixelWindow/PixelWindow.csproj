@@ -7,6 +7,14 @@
         <PublishAot>true</PublishAot>
         <InvariantGlobalization>true</InvariantGlobalization>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <PackageId>PixelWindow</PackageId>
+        <Version>1.0.0-alpha</Version>
+        <Authors>gqvz</Authors>
+        <Description>
+            A simple windowing library, to show pixels on a window.
+        </Description>
+        <RepositoryUrl>https://github.com/gqvz/PixelWindow</RepositoryUrl>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 
     <ItemGroup>
