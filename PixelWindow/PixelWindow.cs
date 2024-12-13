@@ -2,12 +2,10 @@
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
-using OpenTK.Windowing.GraphicsLibraryFramework;
-using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
 
 namespace PixelWindow;
 
-public class PixelWindow : GameWindow
+public class PixelWindow(NativeWindowSettings settings) : GameWindow(new GameWindowSettings(), settings )
 {
     public unsafe byte* Data
     {
@@ -19,41 +17,49 @@ public class PixelWindow : GameWindow
         }
     }
 
+    public float Zoom { get; set; } = 1f;
+
+    public Vector2 ZoomOffset { get; set; }
+
+    public Vector2i TextureSize { get; set; }
+
     private int _vertexBufferObject;
     private int _vertexArrayObject;
     private int _texture;
     private int _shaderProgram;
 
-    private readonly float[] _vertices =
+    private readonly uint[] _indices =
     [
-        // Position         // Texture coordinates
-         1.0f,  1.0f, 0.0f, 1.0f, 1.0f, // Top right
-         1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // Bottom right
-        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, // Bottom left
-        -1.0f,  1.0f, 0.0f, 0.0f, 1.0f  // Top left
+        0, 1, 3, 
+        1, 2, 3
     ];
 
-    private readonly uint[] _indices =
-    {
-        0, 1, 3, // First triangle
-        1, 2, 3  // Second triangle
-    };
+    private readonly float[] _vertices =
+    [
+        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+        -1.0f, 1.0f, 0.0f, 0.0f, 1.0f
+    ];
 
     private unsafe byte* _data;
 
     // language=GLSL
     private const string VertexShaderSource = """
-                                              
+
                                               #version 330 core
-                                          
+
                                               layout(location = 0) in vec3 aPosition;
                                               layout(location = 1) in vec2 aTexCoord;
-                                          
+
                                               out vec2 texCoord;
+
+                                              uniform float zoom;
+                                              uniform vec2 zoomOffset;
                                                   
                                               void main()
                                               {
-                                                  texCoord = aTexCoord;
+                                                  texCoord = (aTexCoord - 0.5) / zoom + 0.5 + zoomOffset;
                                                   gl_Position = vec4(aPosition, 1.0);
                                               }
                                                   
@@ -61,14 +67,14 @@ public class PixelWindow : GameWindow
 
     // language=GLSL
     private const string FragmentShaderSource = """
-                                                
+
                                                 #version 330 core
-                                                
+
                                                 in vec2 texCoord;
                                                 out vec4 outputColor;
-                                                
+
                                                 uniform sampler2D texture0;
-                                                
+
                                                 void main()
                                                 {
                                                     outputColor = texture(texture0, texCoord);
@@ -76,40 +82,22 @@ public class PixelWindow : GameWindow
                                                     
                                                 """;
 
-    public PixelWindow(int width, int height) : base(new GameWindowSettings(),
-        new NativeWindowSettings
-        {
-            ClientSize = new Vector2i(width, height),
-            Title = "Ray Tracing in One Weekend"
-        })
-    {
-        unsafe
-        {
-            GLFW.SetWindowSizeLimits(WindowPtr, width, height, width, height);
-        }
-    }
-
-    protected override void OnLoad()
+    protected override unsafe void OnLoad()
     {
         base.OnLoad();
 
-        // Set the clear color
         GL.ClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
-        // Generate and bind Vertex Array Object
         _vertexArrayObject = GL.GenVertexArray();
         GL.BindVertexArray(_vertexArrayObject);
 
-        // Generate and bind Vertex Buffer Object
         _vertexBufferObject = GL.GenBuffer();
         GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
-        GL.BufferData(BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsage.StaticDraw);
+        GL.BufferData(BufferTarget.ArrayBuffer, 20 * sizeof(float), _vertices, BufferUsage.DynamicDraw);
 
-        // Generate and bind Element Buffer Object
         var elementBufferObject = GL.GenBuffer();
         GL.BindBuffer(BufferTarget.ElementArrayBuffer, elementBufferObject);
-        GL.BufferData(BufferTarget.ElementArrayBuffer, _indices.Length * sizeof(uint), _indices,
-            BufferUsage.StaticDraw);
+        GL.BufferData(BufferTarget.ElementArrayBuffer, 6 * sizeof(uint), _indices, BufferUsage.StaticDraw);
 
         // Set vertex attribute pointers
         GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 5 * sizeof(float), 0);
@@ -141,7 +129,6 @@ public class PixelWindow : GameWindow
             Console.WriteLine($"Fragment Shader Compilation Error: {infoLog}");
         }
 
-        // Link shaders into a program
         _shaderProgram = GL.CreateProgram();
         GL.AttachShader(_shaderProgram, vertexShader);
         GL.AttachShader(_shaderProgram, fragmentShader);
@@ -159,51 +146,71 @@ public class PixelWindow : GameWindow
         GL.DeleteShader(vertexShader);
         GL.DeleteShader(fragmentShader);
 
-        // Create and bind texture
         _texture = GL.GenTexture();
-        UpdateTexture();
+        GL.BindTexture(TextureTarget.Texture2d, _texture);
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);        GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba, TextureSize.X, TextureSize.Y, 0,
+            PixelFormat.Rgba,
+            PixelType.UnsignedByte, _data);
 
         GL.GenerateMipmap(TextureTarget.Texture2d);
 
-        // Bind texture uniform
         GL.UseProgram(_shaderProgram);
         var textureUniformLocation = GL.GetUniformLocation(_shaderProgram, "texture0");
-        GL.Uniform1i(textureUniformLocation, 0); // Use texture unit 0
+        GL.Uniform1i(textureUniformLocation, 0);
+
+        var zoomUniformLocation = GL.GetUniformLocation(_shaderProgram, "zoom");
+        GL.Uniform1f(zoomUniformLocation, Zoom);
     }
+
+    protected override void OnMouseWheel(MouseWheelEventArgs e)
+    {
+        base.OnMouseWheel(e);
+
+        GL.BindTexture(TextureTarget.Texture2d, _texture);
+
+        var zoomUniformLocation = GL.GetUniformLocation(_shaderProgram, "zoom");
+        GL.Uniform1f(zoomUniformLocation, Zoom);
+
+        var zoomOffsetUniformLocation = GL.GetUniformLocation(_shaderProgram, "zoomOffset");
+        GL.Uniform2f(zoomOffsetUniformLocation, ZoomOffset.X, ZoomOffset.Y);
+        
+        UpdateTexture();
+    }
+
 
     public unsafe void UpdateTexture()
     {
         GL.BindTexture(TextureTarget.Texture2d, _texture);
-
-        // Set texture parameters
-        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-        
-        GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba, ClientSize.X, ClientSize.Y, 0, PixelFormat.Rgba,
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+        GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba, TextureSize.X, TextureSize.Y, 0,
+            PixelFormat.Rgba,
             PixelType.UnsignedByte, _data);
-    }
-
-    protected override unsafe void OnRenderFrame(FrameEventArgs args)
-    {
-        base.OnRenderFrame(args);
-
-        GL.Clear(ClearBufferMask.ColorBufferBit);
-        var error = GL.GetError();
-        if (error != ErrorCode.NoError)
-            Console.WriteLine($"OpenGL Error: {error}");
-        GL.UseProgram(_shaderProgram);
-        GL.BindVertexArray(_vertexArrayObject);
-        GL.BindTexture(TextureTarget.Texture2d, _texture);
         GL.DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);
-
         SwapBuffers();
     }
 
-    protected override void OnResize(ResizeEventArgs e)
+    protected override unsafe void OnResize(ResizeEventArgs e)
     {
         base.OnResize(e);
-        
+
         GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+        GL.BindTexture(TextureTarget.Texture2d, _texture);
+        GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba, TextureSize.X, TextureSize.Y, 0,
+            PixelFormat.Rgba,
+            PixelType.UnsignedByte, _data);
+
+        GL.GenerateMipmap(TextureTarget.Texture2d);
+
+        GL.UseProgram(_shaderProgram);
+        var textureUniformLocation = GL.GetUniformLocation(_shaderProgram, "texture0");
+        GL.Uniform1i(textureUniformLocation, 0);
+
+        var zoomUniformLocation = GL.GetUniformLocation(_shaderProgram, "zoom");
+        GL.Uniform1f(zoomUniformLocation, Zoom);
     }
 
     protected override void OnUnload()

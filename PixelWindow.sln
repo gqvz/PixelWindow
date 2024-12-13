@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixelWindow", "PixelWindow\PixelWindow.csproj", "{E0B6D142-5E1C-4E34-9149-65CE4406C1FD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixelWindow.Example", "PixelWindow.Example\PixelWindow.Example.csproj", "{3DFC3205-90DB-49A8-97DC-ED2335D176F7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{E0B6D142-5E1C-4E34-9149-65CE4406C1FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E0B6D142-5E1C-4E34-9149-65CE4406C1FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E0B6D142-5E1C-4E34-9149-65CE4406C1FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DFC3205-90DB-49A8-97DC-ED2335D176F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DFC3205-90DB-49A8-97DC-ED2335D176F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DFC3205-90DB-49A8-97DC-ED2335D176F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DFC3205-90DB-49A8-97DC-ED2335D176F7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
